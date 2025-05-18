@@ -26,7 +26,7 @@ type Config struct {
 
 var AppVersion string = "development"
 
-var WEBSITE string = "https://github.com/SummonHIM"
+var WEBSITE string = "https://github.com/SummonHIM/GoSteamRestarter"
 
 var CONFIG Config
 
