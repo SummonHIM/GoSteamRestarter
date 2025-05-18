@@ -24,7 +24,7 @@ type Config struct {
 	} `yaml:"app"`
 }
 
-var VERSION string = "0.0.0"
+var AppVersion string = "development"
 
 var WEBSITE string = "https://github.com/SummonHIM"
 
@@ -327,8 +327,8 @@ func render_config(app *tview.Application) {
 
 func render_about(app *tview.Application) {
 	about_list := tview.NewList().
-		AddItem("版本号", VERSION, '1', func() {
-			if err := clipboard.WriteAll(VERSION); err != nil {
+		AddItem("版本号", AppVersion, '1', func() {
+			if err := clipboard.WriteAll(AppVersion); err != nil {
 				show_error_modal(app, fmt.Sprintf("复制文本时发生错误：%s", err))
 				return
 			}
@@ -417,12 +417,6 @@ func render() {
 }
 
 func main() {
-	if os.Getenv("APP_VERSION") == "" {
-		VERSION = "development"
-	} else {
-		VERSION = os.Getenv("APP_VERSION")
-	}
-
 	if runtime.GOOS == "windows" {
 		APP_PROC_NAME = "steam.exe"
 		APP_PROC_LOCATION = "steam.exe"
