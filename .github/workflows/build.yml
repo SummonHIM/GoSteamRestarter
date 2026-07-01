@@ -171,7 +171,7 @@ jobs:
         shell: bash
         run: |
           OUTFILE="gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${VERSION}-setup.exe"
-          curl -sL "https://raw.githubusercontent.com/GsNSIS/EnvVarUpdate/main/EnvVarUpdate.nsh" -o EnvVarUpdate.nsh
+          curl -sL "https://raw.githubusercontent.com/GsNSIS/EnvVarUpdate/main/EnvVarUpdate.nsh" -o scripts/EnvVarUpdate.nsh
           makensis -DOUTFILE="${OUTFILE}" scripts/installer.nsi
 
       - name: Upload artifacts
