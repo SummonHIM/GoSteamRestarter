@@ -51,3 +51,7 @@ func (a *App) defaultConfigStore() (ConfigStore, error) {
 	}
 	return NewConfigStore(dir), nil
 }
+
+func (a *App) GetConfig() Config {
+	return a.cfg
+}

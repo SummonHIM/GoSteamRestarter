@@ -1,34 +1,34 @@
 package cli
 
 import (
-	"bufio"
-	"fmt"
-	"io"
-	"strings"
-
+	"github.com/rivo/tview"
 	"gosteamrestarter/internal/core"
 )
 
-func promptSettings(in *bufio.Reader, out io.Writer, app *core.App) error {
-	_, _ = fmt.Fprintln(out, "设置")
-	_, _ = fmt.Fprintln(out, "请输入 Steam 路径:")
-	path, err := in.ReadString('\n')
-	if err != nil {
-		return err
-	}
-	_, _ = fmt.Fprintln(out, "请输入 Steam 启动参数:")
-	args, err := in.ReadString('\n')
-	if err != nil {
-		return err
-	}
+func createSettingsForm(tApp *tview.Application, pages *tview.Pages, app *core.App) *tview.Form {
+	cfg := app.GetConfig()
 
-	cfg := core.Config{
-		SteamPath: strings.TrimSpace(path),
-		SteamArgs: strings.TrimSpace(args),
-	}
-	if err := app.SaveConfig(cfg); err != nil {
-		return err
-	}
-	_, _ = fmt.Fprintln(out, "设置已保存")
-	return nil
+	var form *tview.Form
+	form = tview.NewForm().
+		AddInputField("Steam 路径", cfg.SteamPath, 60, nil, nil).
+		AddInputField("Steam 参数", cfg.SteamArgs, 60, nil, nil).
+		AddButton("保存", func() {
+			pathItem := form.GetFormItemByLabel("Steam 路径").(*tview.InputField)
+			argsItem := form.GetFormItemByLabel("Steam 参数").(*tview.InputField)
+			newCfg := core.Config{
+				SteamPath: pathItem.GetText(),
+				SteamArgs: argsItem.GetText(),
+			}
+			if err := app.SaveConfig(newCfg); err != nil {
+				showMessage(tApp, pages, "settings", "错误", err.Error())
+			} else {
+				showMessage(tApp, pages, "settings", "成功", "设置已保存")
+			}
+		}).
+		AddButton("返回", func() {
+			pages.SwitchToPage("menu")
+		})
+
+	form.SetTitle(" 设置 ").SetBorder(true)
+	return form
 }

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=GoSteamRestarter
+Comment=Cross-platform Steam restarter
+Exec=/usr/bin/gosteamrestarter-desktop
+Terminal=false
+Type=Application
+Categories=Utility;Game;
+Keywords=steam;restart;dns;

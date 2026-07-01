@@ -6,7 +6,7 @@ import (
 	"gosteamrestarter/internal/core"
 )
 
-func TestRunAcceptsApp(t *testing.T) {
+func TestRunAcceptsNilApp(t *testing.T) {
 	if err := Run(nil); err != nil {
 		t.Fatal(err)
 	}

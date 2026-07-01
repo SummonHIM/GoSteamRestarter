@@ -16,7 +16,7 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if err := cli.Run(os.Stdin, os.Stdout, app); err != nil {
+	if err := cli.Run(app); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -24,13 +24,11 @@ func main() {
 
 func bootstrap(services core.Services) (*core.App, error) {
 	app := core.NewApp(services)
-
 	if _, err := app.LoadConfig(); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
 	}
 	if _, err := app.FindOrConfirmSteamPath(); err != nil && !errors.Is(err, core.ErrSteamNotFound) {
 		return nil, err
 	}
-
 	return app, nil
 }

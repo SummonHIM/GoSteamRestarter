@@ -1,16 +1,196 @@
-name: build
-on: [push, pull_request]
+name: Build
+
+on:
+  push:
+    paths-ignore:
+      - "README.md"
+      - ".gitignore"
+    branches:
+      - "master"
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches:
+      - "master"
+
 jobs:
   test:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
-      - run: go test ./...
-      - run: go build ./cmd/cli
-      - run: go build ./cmd/desktop
+          go-version: "1.26"
+      - name: Run tests
+        run: go test -tags nofyne ./...
+
+  build:
+    needs: test
+    runs-on: ${{ matrix.jobs.runs-on }}
+    strategy:
+      matrix:
+        jobs:
+          # Windows
+          - { goos: windows, goarch: "386", runs-on: windows-latest, output: "386" }
+          - { goos: windows, goarch: amd64, goamd64: v1, runs-on: windows-latest, output: amd64-v1 }
+          - { goos: windows, goarch: amd64, goamd64: v3, runs-on: windows-latest, output: amd64 }
+
+          # Linux
+          - { goos: linux, goarch: amd64, goamd64: v1, runs-on: ubuntu-latest, output: amd64-v1, deb: amd64, rpm: x86_64, pacman: x86_64 }
+          - { goos: linux, goarch: amd64, goamd64: v3, runs-on: ubuntu-latest, output: amd64, deb: amd64, rpm: x86_64, pacman: x86_64 }
+
+          # macOS
+          - { goos: darwin, goarch: amd64, goamd64: v1, runs-on: macos-latest, output: amd64-v1 }
+          - { goos: darwin, goarch: amd64, goamd64: v3, runs-on: macos-latest, output: amd64 }
+          - { goos: darwin, goarch: arm64, runs-on: macos-latest, output: arm64 }
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Install Linux dependencies
+        if: matrix.jobs.goos == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev
+
+      - name: Set version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME,,}-$(git rev-parse --short HEAD)"
+          VERSION="${VERSION//\//-}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "PackageVersion=${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+
+      - name: Build CLI
+        shell: bash
+        env:
+          GOOS: ${{ matrix.jobs.goos }}
+          GOARCH: ${{ matrix.jobs.goarch }}
+          GOAMD64: ${{ matrix.jobs.goamd64 }}
+          CGO_ENABLED: "0"
+        run: |
+          EXT=""
+          if [ "${{ matrix.jobs.goos }}" = "windows" ]; then
+            EXT=".exe"
+          fi
+          go build -trimpath -ldflags "-w -s" -o "gosteamrestarter-cli${EXT}" ./cmd/cli
+
+      - name: Build Desktop
+        shell: bash
+        env:
+          GOOS: ${{ matrix.jobs.goos }}
+          GOARCH: ${{ matrix.jobs.goarch }}
+          GOAMD64: ${{ matrix.jobs.goamd64 }}
+          CGO_ENABLED: "1"
+        run: |
+          EXT=""
+          if [ "${{ matrix.jobs.goos }}" = "windows" ]; then
+            EXT=".exe"
+          fi
+          go build -trimpath -ldflags "-w -s" -o "gosteamrestarter-desktop${EXT}" ./cmd/desktop
+
+      - name: Package archive
+        shell: bash
+        run: |
+          ARCHIVE_NAME="gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${VERSION}"
+          if [ "${{ matrix.jobs.goos }}" = "windows" ]; then
+            7z a "${ARCHIVE_NAME}.zip" gosteamrestarter-cli.exe gosteamrestarter-desktop.exe
+          else
+            tar czf "${ARCHIVE_NAME}.tar.gz" gosteamrestarter-cli gosteamrestarter-desktop
+          fi
+
+      - name: Package DEB
+        if: matrix.jobs.deb != ''
+        run: |
+          sudo gem install fpm
+          fpm -s dir -t deb \
+            --name gosteamrestarter \
+            --version "${PackageVersion}" \
+            --architecture ${{ matrix.jobs.deb }} \
+            --description "Cross-platform Steam restarter" \
+            --maintainer "GoSteamRestarter" \
+            -p "gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${VERSION}.deb" \
+            gosteamrestarter-cli=/usr/bin/gosteamrestarter-cli \
+            gosteamrestarter-desktop=/usr/bin/gosteamrestarter-desktop \
+            scripts/gosteamrestarter.desktop=/usr/share/applications/gosteamrestarter.desktop
+
+      - name: Package RPM
+        if: matrix.jobs.rpm != ''
+        run: |
+          sudo gem install fpm
+          fpm -s dir -t rpm \
+            --name gosteamrestarter \
+            --version "${PackageVersion}" \
+            --architecture ${{ matrix.jobs.rpm }} \
+            --description "Cross-platform Steam restarter" \
+            --maintainer "GoSteamRestarter" \
+            -p "gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${VERSION}.rpm" \
+            gosteamrestarter-cli=/usr/bin/gosteamrestarter-cli \
+            gosteamrestarter-desktop=/usr/bin/gosteamrestarter-desktop \
+            scripts/gosteamrestarter.desktop=/usr/share/applications/gosteamrestarter.desktop
+
+      - name: Package Pacman
+        if: matrix.jobs.pacman != ''
+        run: |
+          sudo gem install fpm
+          sudo apt-get install -y libarchive-tools
+          fpm -s dir -t pacman \
+            --name gosteamrestarter \
+            --version "${PackageVersion}" \
+            --architecture ${{ matrix.jobs.pacman }} \
+            --description "Cross-platform Steam restarter" \
+            --maintainer "GoSteamRestarter" \
+            -p "gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${VERSION}.pkg.tar.zst" \
+            gosteamrestarter-cli=/usr/bin/gosteamrestarter-cli \
+            gosteamrestarter-desktop=/usr/bin/gosteamrestarter-desktop \
+            scripts/gosteamrestarter.desktop=/usr/share/applications/gosteamrestarter.desktop
+
+      - name: Build Windows installer
+        if: matrix.jobs.goos == 'windows'
+        shell: bash
+        run: |
+          OUTFILE="gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${VERSION}-setup.exe"
+          curl -sL "https://raw.githubusercontent.com/GsNSIS/EnvVarUpdate/main/EnvVarUpdate.nsh" -o EnvVarUpdate.nsh
+          makensis -DOUTFILE="${OUTFILE}" scripts/installer.nsi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}
+          path: |
+            gosteamrestarter*.tar.gz
+            gosteamrestarter*.zip
+            gosteamrestarter*.deb
+            gosteamrestarter*.rpm
+            gosteamrestarter*.pkg.tar.zst
+            gosteamrestarter*-setup.exe
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bin
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -R bin/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          files: bin/*
+          draft: true
+          generate_release_notes: true
