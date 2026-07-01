@@ -1,9 +1,35 @@
 # GoSteamRestarter
 
-[SteamRestarter](https://gist.github.com/SummonHIM/1cd129bcbc72e18faac2b72455967b32) 的 Go 语言实现
+跨平台 Steam 重启工具，支持 CLI 和桌面 GUI 两种模式。
 
-通过 GPT 辅助。
+## 支持平台
 
-## License
+- Windows
+- Linux
+- macOS
 
-[MIT](LICENSE)
+## 构建
+
+```bash
+# 构建 CLI 版本
+go build ./cmd/cli
+
+# 构建桌面 GUI 版本
+go build ./cmd/desktop
+```
+
+## 运行
+
+```bash
+# 运行 CLI 版本
+./cli
+
+# 运行桌面 GUI 版本
+./desktop
+```
+
+## 测试
+
+```bash
+go test ./...
+```

@@ -1,52 +1,16 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
-name: Go
-
-on:
-  push:
-    branches: [ "master" ]
-    tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ "master" ]
-
+name: build
+on: [push, pull_request]
 jobs:
-  build:
-    permissions:
-      contents: write
+  test:
     strategy:
-      fail-fast: false
       matrix:
-        include:
-          - goos: 'linux'
-            platform: 'ubuntu-latest'
-          - goos: 'windows'
-            platform: 'windows-latest'
-          - goos: 'darwin'
-            platform: 'macos-latest'
-
-    runs-on: ${{ matrix.platform }}
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24.1'
-
-    - name: Build
-      shell: bash
-      run: go build -o GoSteamRestarter_${{ matrix.goos }}${{ matrix.goos == 'windows' && '.exe' || '' }} -ldflags "-X 'main.AppVersion=${GITHUB_REF##*/}'"
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: built_${{ matrix.goos }}
-        path: GoSteamRestarter_${{ matrix.goos }}${{ matrix.goos == 'windows' && '.exe' || '' }}
-
-    - name: Publish new release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v2
-      with:
-        name: GoSteamRestarter ${{ github.ref_name }}
-        files: GoSteamRestarter_${{ matrix.goos }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - run: go test ./...
+      - run: go build ./cmd/cli
+      - run: go build ./cmd/desktop
