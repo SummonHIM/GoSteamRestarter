@@ -34,18 +34,18 @@ jobs:
       matrix:
         jobs:
           # Windows
-          - { goos: windows, goarch: "386", runs-on: windows-latest, output: "386" }
-          - { goos: windows, goarch: amd64, goamd64: v1, runs-on: windows-latest, output: amd64-v1 }
-          - { goos: windows, goarch: amd64, goamd64: v3, runs-on: windows-latest, output: amd64 }
+          - { goos: windows, goarch: "386", runs-on: windows-latest, output: "386", desktop: false }
+          - { goos: windows, goarch: amd64, goamd64: v1, runs-on: windows-latest, output: amd64-v1, desktop: true }
+          - { goos: windows, goarch: amd64, goamd64: v3, runs-on: windows-latest, output: amd64, desktop: true }
 
           # Linux
-          - { goos: linux, goarch: amd64, goamd64: v1, runs-on: ubuntu-latest, output: amd64-v1, deb: amd64, rpm: x86_64, pacman: x86_64 }
-          - { goos: linux, goarch: amd64, goamd64: v3, runs-on: ubuntu-latest, output: amd64, deb: amd64, rpm: x86_64, pacman: x86_64 }
+          - { goos: linux, goarch: amd64, goamd64: v1, runs-on: ubuntu-latest, output: amd64-v1, desktop: true, deb: amd64, rpm: x86_64, pacman: x86_64 }
+          - { goos: linux, goarch: amd64, goamd64: v3, runs-on: ubuntu-latest, output: amd64, desktop: true, deb: amd64, rpm: x86_64, pacman: x86_64 }
 
           # macOS
-          - { goos: darwin, goarch: amd64, goamd64: v1, runs-on: macos-latest, output: amd64-v1 }
-          - { goos: darwin, goarch: amd64, goamd64: v3, runs-on: macos-latest, output: amd64 }
-          - { goos: darwin, goarch: arm64, runs-on: macos-latest, output: arm64 }
+          - { goos: darwin, goarch: amd64, goamd64: v1, runs-on: macos-latest, output: amd64-v1, desktop: true }
+          - { goos: darwin, goarch: amd64, goamd64: v3, runs-on: macos-latest, output: amd64, desktop: true }
+          - { goos: darwin, goarch: arm64, runs-on: macos-latest, output: arm64, desktop: true }
 
     steps:
       - uses: actions/checkout@v4
@@ -81,6 +81,7 @@ jobs:
           go build -trimpath -ldflags "-w -s" -o "gosteamrestarter-cli${EXT}" ./cmd/cli
 
       - name: Build Desktop
+        if: matrix.jobs.desktop == true
         shell: bash
         env:
           GOOS: ${{ matrix.jobs.goos }}
@@ -99,9 +100,17 @@ jobs:
         run: |
           ARCHIVE_NAME="gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${VERSION}"
           if [ "${{ matrix.jobs.goos }}" = "windows" ]; then
-            7z a "${ARCHIVE_NAME}.zip" gosteamrestarter-cli.exe gosteamrestarter-desktop.exe
+            if [ "${{ matrix.jobs.desktop }}" = "true" ]; then
+              7z a "${ARCHIVE_NAME}.zip" gosteamrestarter-cli.exe gosteamrestarter-desktop.exe
+            else
+              7z a "${ARCHIVE_NAME}.zip" gosteamrestarter-cli.exe
+            fi
           else
-            tar czf "${ARCHIVE_NAME}.tar.gz" gosteamrestarter-cli gosteamrestarter-desktop
+            if [ "${{ matrix.jobs.desktop }}" = "true" ]; then
+              tar czf "${ARCHIVE_NAME}.tar.gz" gosteamrestarter-cli gosteamrestarter-desktop
+            else
+              tar czf "${ARCHIVE_NAME}.tar.gz" gosteamrestarter-cli
+            fi
           fi
 
       - name: Package DEB
@@ -151,7 +160,7 @@ jobs:
             scripts/gosteamrestarter.desktop=/usr/share/applications/gosteamrestarter.desktop
 
       - name: Build Windows installer
-        if: matrix.jobs.goos == 'windows'
+        if: matrix.jobs.goos == 'windows' && matrix.jobs.desktop == true
         shell: bash
         run: |
           OUTFILE="gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${VERSION}-setup.exe"
