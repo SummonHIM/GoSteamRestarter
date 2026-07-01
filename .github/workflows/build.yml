@@ -168,11 +168,16 @@ jobs:
 
       - name: Build Windows installer
         if: matrix.jobs.goos == 'windows' && matrix.jobs.desktop == true
-        shell: bash
+        shell: pwsh
         run: |
-          OUTFILE="gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${VERSION}-setup.exe"
-          curl -sL "https://raw.githubusercontent.com/GsNSIS/EnvVarUpdate/main/EnvVarUpdate.nsh" -o scripts/EnvVarUpdate.nsh
-          makensis -DOUTFILE="${OUTFILE}" scripts/installer.nsi
+          $OUTFILE = "gosteamrestarter-${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}-${env:VERSION}-setup.exe"
+          # Install EnVar plugin
+          Invoke-WebRequest -Uri "https://nsis.sourceforge.io/mediawiki/images/7/7f/EnVar_plugin.zip" -OutFile EnVar_plugin.zip
+          Expand-Archive -Path EnVar_plugin.zip -DestinationPath EnVar_plugin
+          Copy-Item -Path "EnVar_plugin\Plugins\x86-ansi\*" -Destination "C:\Program Files (x86)\NSIS\Plugins\x86-ansi\" -Force
+          Copy-Item -Path "EnVar_plugin\Plugins\x86-unicode\*" -Destination "C:\Program Files (x86)\NSIS\Plugins\x86-unicode\" -Force
+          # Build installer
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /DOUTFILE="$OUTFILE" scripts\installer.nsi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
