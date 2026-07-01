@@ -159,6 +159,13 @@ jobs:
             gosteamrestarter-desktop=/usr/bin/gosteamrestarter-desktop \
             scripts/gosteamrestarter.desktop=/usr/share/applications/gosteamrestarter.desktop
 
+      - name: Install NSIS
+        if: matrix.jobs.goos == 'windows' && matrix.jobs.desktop == true
+        shell: pwsh
+        run: |
+          choco install nsis -y
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Build Windows installer
         if: matrix.jobs.goos == 'windows' && matrix.jobs.desktop == true
         shell: bash
