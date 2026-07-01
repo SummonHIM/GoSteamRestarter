@@ -48,8 +48,8 @@ FunctionEnd
 Section "安装文件" SecInstall
   SectionIn RO
   SetOutPath $INSTDIR
-  File "gosteamrestarter-cli.exe"
-  File "gosteamrestarter-desktop.exe"
+  File "${BINDIR}\gosteamrestarter-cli.exe"
+  File "${BINDIR}\gosteamrestarter-desktop.exe"
 
   ; Add to PATH based on install mode
   StrCmp $InstallMode "allusers" 0 +3

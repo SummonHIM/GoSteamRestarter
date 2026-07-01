@@ -177,7 +177,7 @@ jobs:
           Copy-Item -Path "EnVar_plugin\Plugins\x86-ansi\*" -Destination "C:\Program Files (x86)\NSIS\Plugins\x86-ansi\" -Force
           Copy-Item -Path "EnVar_plugin\Plugins\x86-unicode\*" -Destination "C:\Program Files (x86)\NSIS\Plugins\x86-unicode\" -Force
           # Build installer
-          & "C:\Program Files (x86)\NSIS\makensis.exe" /DOUTFILE="$OUTFILE" scripts\installer.nsi
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /DOUTFILE="$OUTFILE" /DBINDIR="$PWD" scripts\installer.nsi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
