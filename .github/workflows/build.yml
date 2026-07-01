@@ -90,10 +90,12 @@ jobs:
           CGO_ENABLED: "1"
         run: |
           EXT=""
+          LDFLAGS="-w -s"
           if [ "${{ matrix.jobs.goos }}" = "windows" ]; then
             EXT=".exe"
+            LDFLAGS="-w -s -H windowsgui"
           fi
-          go build -trimpath -ldflags "-w -s" -o "gosteamrestarter-desktop${EXT}" ./cmd/desktop
+          go build -trimpath -ldflags "${LDFLAGS}" -o "gosteamrestarter-desktop${EXT}" ./cmd/desktop
 
       - name: Package archive
         shell: bash
@@ -178,6 +180,7 @@ jobs:
           Copy-Item -Path "EnVar_plugin\Plugins\x86-unicode\*" -Destination "C:\Program Files (x86)\NSIS\Plugins\x86-unicode\" -Force
           # Build installer
           & "C:\Program Files (x86)\NSIS\makensis.exe" /DOUTFILE="$OUTFILE" /DBINDIR="$PWD" scripts\installer.nsi
+          Move-Item -Path "scripts\$OUTFILE" -Destination ".\$OUTFILE"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
